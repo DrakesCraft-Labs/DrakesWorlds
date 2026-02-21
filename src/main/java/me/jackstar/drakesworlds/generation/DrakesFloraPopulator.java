@@ -96,9 +96,10 @@ public final class DrakesFloraPopulator extends BlockPopulator {
     }
 
     private int findSurfaceY(LimitedRegion region, int x, int z, int minY, int maxY) {
-        for (int y = maxY; y > minY + 1; y--) {
-            Material floor = region.getType(x, y, z);
-            Material above = region.getType(x, y + 1, z);
+        int safeTop = Math.max(minY + 2, maxY - 1);
+        for (int y = safeTop; y > minY + 1; y--) {
+            Material floor = safeGetType(region, x, y, z);
+            Material above = safeGetType(region, x, y + 1, z);
             if (isGround(floor) && above.isAir()) {
                 return y;
             }
@@ -165,7 +166,7 @@ public final class DrakesFloraPopulator extends BlockPopulator {
         for (int i = 0; i < length; i++) {
             int dx = axis == Axis.X ? x + i : x;
             int dz = axis == Axis.Z ? z + i : z;
-            if (region.getType(dx, y, dz).isAir()) {
+            if (safeGetType(region, dx, y, dz).isAir()) {
                 setAxisLog(region, dx, y, dz, log, axis);
             }
         }
@@ -211,17 +212,17 @@ public final class DrakesFloraPopulator extends BlockPopulator {
                 if ((dx * dx) + (dz * dz) > (radius * radius)) {
                     continue;
                 }
-                if (random.nextDouble() < 0.75d && isGround(region.getType(x, y, z))) {
-                    region.setType(x, y, z, material);
+                if (random.nextDouble() < 0.75d && isGround(safeGetType(region, x, y, z))) {
+                    safeSetType(region, x, y, z, material);
                 }
             }
         }
     }
 
     private void setIfReplaceable(LimitedRegion region, int x, int y, int z, Material material) {
-        Material current = region.getType(x, y, z);
+        Material current = safeGetType(region, x, y, z);
         if (current.isAir() || current == Material.SHORT_GRASS || current == Material.TALL_GRASS || current == Material.FERN) {
-            region.setType(x, y, z, material);
+            safeSetType(region, x, y, z, material);
         }
     }
 
@@ -230,7 +231,37 @@ public final class DrakesFloraPopulator extends BlockPopulator {
         if (blockData instanceof Orientable orientable) {
             orientable.setAxis(axis);
         }
-        region.setBlockData(x, y, z, blockData);
+        safeSetBlockData(region, x, y, z, blockData);
+    }
+
+    private Material safeGetType(LimitedRegion region, int x, int y, int z) {
+        if (!isWithinRegion(region, x, y, z)) {
+            return Material.AIR;
+        }
+        return region.getType(x, y, z);
+    }
+
+    private void safeSetType(LimitedRegion region, int x, int y, int z, Material material) {
+        if (!isWithinRegion(region, x, y, z)) {
+            return;
+        }
+        region.setType(x, y, z, material);
+    }
+
+    private void safeSetBlockData(LimitedRegion region, int x, int y, int z, BlockData data) {
+        if (!isWithinRegion(region, x, y, z)) {
+            return;
+        }
+        region.setBlockData(x, y, z, data);
+    }
+
+    private boolean isWithinRegion(LimitedRegion region, int x, int y, int z) {
+        try {
+            region.getType(x, y, z);
+            return true;
+        } catch (IllegalArgumentException ignored) {
+            return false;
+        }
     }
 
     private static boolean isGround(Material material) {
@@ -297,4 +328,3 @@ public final class DrakesFloraPopulator extends BlockPopulator {
         return 1.0d;
     }
 }
-
