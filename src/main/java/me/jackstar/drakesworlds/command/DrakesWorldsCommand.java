@@ -128,7 +128,8 @@ public final class DrakesWorldsCommand implements CommandExecutor, TabCompleter 
         sender.sendMessage(ChatColor.GRAY + "- Seed: " + world.getSeed());
         sender.sendMessage(ChatColor.GRAY + "- Environment: " + world.getEnvironment().name());
         sender.sendMessage(ChatColor.GRAY + "- MinY/MaxY: " + world.getMinHeight() + "/" + world.getMaxHeight());
-        sender.sendMessage(ChatColor.GRAY + "- Generator: " + world.getGenerator().getClass().getSimpleName());
+        String generator = world.getGenerator() == null ? "Vanilla/Default" : world.getGenerator().getClass().getSimpleName();
+        sender.sendMessage(ChatColor.GRAY + "- Generator: " + generator);
         return true;
     }
 
@@ -147,4 +148,3 @@ public final class DrakesWorldsCommand implements CommandExecutor, TabCompleter 
                 .collect(Collectors.toList());
     }
 }
-
