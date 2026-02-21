@@ -2,8 +2,12 @@ package me.jackstar.drakesworlds;
 
 import me.jackstar.drakesworlds.command.DrakesWorldsCommand;
 import me.jackstar.drakesworlds.config.WorldsConfig;
+import me.jackstar.drakesworlds.domain.WorldProfile;
+import me.jackstar.drakesworlds.generation.DrakesBiomeProvider;
+import me.jackstar.drakesworlds.generation.DrakesChunkGenerator;
 import me.jackstar.drakesworlds.service.WorldBootstrapService;
 import org.bukkit.command.PluginCommand;
+import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public final class DrakesWorldsPlugin extends JavaPlugin {
@@ -29,6 +33,19 @@ public final class DrakesWorldsPlugin extends JavaPlugin {
     @Override
     public void onDisable() {
         getLogger().info("DrakesWorlds disabled.");
+    }
+
+    @Override
+    public ChunkGenerator getDefaultWorldGenerator(String worldName, String profileId) {
+        if (worldsConfig == null) {
+            return super.getDefaultWorldGenerator(worldName, profileId);
+        }
+
+        WorldProfile profile = worldsConfig.getProfile(profileId)
+                .orElseGet(worldsConfig::getRequiredDefaultProfile);
+
+        DrakesBiomeProvider biomeProvider = new DrakesBiomeProvider(profile);
+        return new DrakesChunkGenerator(profile, biomeProvider);
     }
 
     public WorldsConfig getWorldsConfig() {
@@ -57,4 +74,3 @@ public final class DrakesWorldsPlugin extends JavaPlugin {
         command.setTabCompleter(commandHandler);
     }
 }
-

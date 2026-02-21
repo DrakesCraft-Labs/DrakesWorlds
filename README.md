@@ -32,6 +32,10 @@ Plugin de generacion avanzada para Paper 1.20.6 orientado a DrakesCraft.
 - `/drakesworlds worldinfo <world>`
 - `/drakesworlds reload`
 
+Integracion Multiverse:
+- Puedes usar el generador como `DrakesWorlds:<perfil>`.
+- Ejemplo: `mv create wild2 NORMAL -g DrakesWorlds:wild_natural`
+
 Permiso:
 - `drakesworlds.admin` (default: op)
 
@@ -62,4 +66,3 @@ mvn clean package
 
 Jar esperado:
 - `target/DrakesWorlds-1.0-SNAPSHOT.jar`
-
