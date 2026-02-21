@@ -1,0 +1,16 @@
+name: DrakesWorlds
+version: 1.0
+main: me.jackstar.drakesworlds.DrakesWorldsPlugin
+api-version: '1.20'
+authors: [JackStar]
+description: Advanced world generation profiles for DrakesCraft
+commands:
+  drakesworlds:
+    description: Manage DrakesWorlds profiles and world generation
+    usage: /drakesworlds <create|listprofiles|reload|worldinfo>
+    permission: drakesworlds.admin
+permissions:
+  drakesworlds.admin:
+    description: Allows use of DrakesWorlds administration command
+    default: op
+

@@ -1,0 +1,87 @@
+# ==========================================================
+# DrakesWorlds - Configuracion principal de generacion
+# ==========================================================
+# Este archivo controla perfiles de terreno, biomas y flora.
+# Si quieres cambios fuertes, hazlos aqui y usa:
+# /drakesworlds reload
+
+# Perfil usado cuando no especificas uno en comando.
+default-profile: wild_natural
+
+# Si esta en true, DrakesWorlds intentara crear los mundos
+# definidos en "startup-worlds" al iniciar el servidor.
+auto-create-on-startup: true
+
+# [DANGER] Si cambias parametros de un mundo ya generado,
+# los chunks existentes NO cambian automaticamente.
+# Para ver cambios reales debes pregenerar de nuevo o crear
+# un mundo nuevo con otro nombre.
+startup-worlds:
+  - name: drakes_wild
+    profile: wild_natural
+    environment: NORMAL
+    create-if-missing: true
+    # Seed opcional. Dejalo vacio para semilla aleatoria.
+    # seed: 123456789
+
+profiles:
+  # Perfil principal: menos planicies, mas bosques, pinos,
+  # montanas nevadas, pantanos y zonas hostiles.
+  wild_natural:
+    terrain:
+      # Nivel del mar.
+      sea-level: 63
+      # Altura base del terreno. Mas alto = mundo mas elevado.
+      base-height: 74
+      # Intensidad general de colinas.
+      hill-amplitude: 26.0
+      # Intensidad de montanas grandes.
+      mountain-amplitude: 54.0
+      # Cuanto bajan los valles.
+      valley-depth: 17.0
+      # Rugosidad fina para evitar superficies planas artificiales.
+      detail-amplitude: 6.0
+      # Escala del ruido de claros dentro de bosque.
+      clearing-scale: 0.0038
+      # Umbral para decidir si aparece un claro.
+      clearing-threshold: 0.63
+      # Fuerza de aplanado en claros (0.0 - 1.0).
+      clearing-flattening: 0.72
+
+    biome-weights:
+      # Recomendacion: mantener plains muy bajo.
+      plains: 0.03
+      meadow: 0.08
+      forest: 0.18
+      dark_forest: 0.10
+      taiga: 0.22
+      old_growth_pine_taiga: 0.20
+      grove: 0.11
+      snowy_taiga: 0.11
+      snowy_slopes: 0.12
+      jagged_peaks: 0.10
+      stony_peaks: 0.06
+      swamp: 0.14
+      mangrove_swamp: 0.10
+      cherry_grove: 0.12
+      badlands: 0.06
+      wooded_badlands: 0.05
+
+    decoration:
+      # Densidad base de arboles por chunk.
+      base-trees-per-chunk: 18
+      # Multiplicadores por bioma.
+      taiga-tree-multiplier: 1.75
+      forest-tree-multiplier: 1.30
+      swamp-tree-multiplier: 1.15
+      # Probabilidad de arboles muertos (0.0 - 1.0).
+      dead-tree-chance: 0.08
+      # Probabilidad de troncos caidos (0.0 - 1.0).
+      fallen-log-chance: 0.16
+      # Probabilidad de arbustos/sotobosque (0.0 - 1.0).
+      bush-chance: 0.24
+      # Activa pinos custom altos.
+      enable-custom-pines: true
+      pine-min-height: 9
+      pine-max-height: 16
+
