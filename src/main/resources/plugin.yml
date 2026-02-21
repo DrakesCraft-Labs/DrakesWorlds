@@ -9,8 +9,8 @@ commands:
     description: Manage DrakesWorlds profiles and world generation
     usage: /drakesworlds <create|listprofiles|reload|worldinfo>
     permission: drakesworlds.admin
+    aliases: [dworld, drworld, dworlds]
 permissions:
   drakesworlds.admin:
     description: Allows use of DrakesWorlds administration command
     default: op
-
