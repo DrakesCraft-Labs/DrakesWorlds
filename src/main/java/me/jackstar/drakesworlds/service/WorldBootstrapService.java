@@ -9,7 +9,13 @@ import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.WorldCreator;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.Properties;
 
 public final class WorldBootstrapService {
 
@@ -37,6 +43,60 @@ public final class WorldBootstrapService {
                 continue;
             }
             createWorld(spec.name(), spec.profileId(), spec.environment(), spec.seed(), false);
+        }
+    }
+
+    public World ensureConfiguredDefaultWorldLoaded() {
+        String defaultWorldName = worldsConfig.getDefaultWorldName();
+        World loaded = Bukkit.getWorld(defaultWorldName);
+        if (loaded != null) {
+            return loaded;
+        }
+
+        WorldsConfig.StartupWorldSpec startupSpec = worldsConfig.getStartupWorlds().stream()
+                .filter(spec -> spec.name().equalsIgnoreCase(defaultWorldName))
+                .findFirst()
+                .orElse(null);
+
+        if (startupSpec != null) {
+            return createWorld(startupSpec.name(), startupSpec.profileId(), startupSpec.environment(), startupSpec.seed(), true);
+        }
+
+        plugin.getLogger().warning("Default world '" + defaultWorldName + "' is not in startup-worlds. Creating it with default profile.");
+        return createWorld(defaultWorldName, worldsConfig.getDefaultProfileId(), World.Environment.NORMAL, null, true);
+    }
+
+    public void syncLevelNameWithConfiguredDefaultWorld() {
+        if (!worldsConfig.isSyncLevelNameInServerProperties()) {
+            return;
+        }
+
+        File serverProperties = new File(plugin.getServer().getWorldContainer(), "server.properties");
+        if (!serverProperties.exists()) {
+            plugin.getLogger().warning("server.properties not found. Could not sync level-name.");
+            return;
+        }
+
+        Properties props = new Properties();
+        try (FileInputStream in = new FileInputStream(serverProperties)) {
+            props.load(in);
+        } catch (IOException ex) {
+            plugin.getLogger().warning("Could not read server.properties: " + ex.getMessage());
+            return;
+        }
+
+        String expected = worldsConfig.getDefaultWorldName();
+        String current = props.getProperty("level-name", "world");
+        if (Objects.equals(current, expected)) {
+            return;
+        }
+
+        props.setProperty("level-name", expected);
+        try (FileOutputStream out = new FileOutputStream(serverProperties)) {
+            props.store(out, "Updated by DrakesWorlds");
+            plugin.getLogger().warning("Synchronized server.properties level-name from '" + current + "' to '" + expected + "'. Restart required to fully apply.");
+        } catch (IOException ex) {
+            plugin.getLogger().warning("Could not write server.properties: " + ex.getMessage());
         }
     }
 
@@ -78,4 +138,3 @@ public final class WorldBootstrapService {
         return world;
     }
 }
-

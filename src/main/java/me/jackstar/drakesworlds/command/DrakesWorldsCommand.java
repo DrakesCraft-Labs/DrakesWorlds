@@ -10,6 +10,7 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
+import org.bukkit.entity.Player;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -27,11 +28,6 @@ public final class DrakesWorldsCommand implements CommandExecutor, TabCompleter 
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        if (!sender.hasPermission("drakesworlds.admin")) {
-            sender.sendMessage(ChatColor.RED + "No permission.");
-            return true;
-        }
-
         if (args.length == 0) {
             sendHelp(sender);
             return true;
@@ -39,10 +35,13 @@ public final class DrakesWorldsCommand implements CommandExecutor, TabCompleter 
 
         String sub = args[0].toLowerCase(Locale.ROOT);
         return switch (sub) {
-            case "create" -> handleCreate(sender, args);
+            case "create" -> handleCreate(sender, args, label);
             case "listprofiles" -> handleListProfiles(sender);
             case "reload" -> handleReload(sender);
-            case "worldinfo" -> handleWorldInfo(sender, args);
+            case "worldinfo" -> handleWorldInfo(sender, args, label);
+            case "listworlds" -> handleListWorlds(sender);
+            case "tp", "teleport" -> handleTeleport(sender, args, label);
+            case "spawn", "hub" -> handleSpawn(sender, args, label);
             default -> {
                 sendHelp(sender);
                 yield true;
@@ -52,11 +51,15 @@ public final class DrakesWorldsCommand implements CommandExecutor, TabCompleter 
 
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
-        if (!sender.hasPermission("drakesworlds.admin")) {
-            return List.of();
-        }
         if (args.length == 1) {
-            return filterByPrefix(Arrays.asList("create", "listprofiles", "reload", "worldinfo"), args[0]);
+            List<String> values = new ArrayList<>();
+            if (sender.hasPermission("drakesworlds.admin")) {
+                values.addAll(Arrays.asList("create", "listprofiles", "reload", "worldinfo"));
+            }
+            if (sender.hasPermission("drakesworlds.teleport")) {
+                values.addAll(Arrays.asList("listworlds", "tp", "spawn"));
+            }
+            return filterByPrefix(values, args[0]);
         }
         if (args.length == 2 && "create".equalsIgnoreCase(args[0])) {
             return List.of("<world_name>");
@@ -67,12 +70,24 @@ public final class DrakesWorldsCommand implements CommandExecutor, TabCompleter 
         if (args.length == 2 && "worldinfo".equalsIgnoreCase(args[0])) {
             return filterByPrefix(Bukkit.getWorlds().stream().map(World::getName).collect(Collectors.toList()), args[1]);
         }
+        if (args.length == 2 && ("tp".equalsIgnoreCase(args[0]) || "teleport".equalsIgnoreCase(args[0]))) {
+            return filterByPrefix(Bukkit.getWorlds().stream().map(World::getName).collect(Collectors.toList()), args[1]);
+        }
+        if (args.length == 3 && ("tp".equalsIgnoreCase(args[0]) || "teleport".equalsIgnoreCase(args[0]))) {
+            return filterByPrefix(Bukkit.getOnlinePlayers().stream().map(Player::getName).collect(Collectors.toList()), args[2]);
+        }
+        if (args.length == 2 && ("spawn".equalsIgnoreCase(args[0]) || "hub".equalsIgnoreCase(args[0]))) {
+            return filterByPrefix(Bukkit.getOnlinePlayers().stream().map(Player::getName).collect(Collectors.toList()), args[1]);
+        }
         return List.of();
     }
 
-    private boolean handleCreate(CommandSender sender, String[] args) {
+    private boolean handleCreate(CommandSender sender, String[] args, String label) {
+        if (!requirePermission(sender, "drakesworlds.admin")) {
+            return true;
+        }
         if (args.length < 2) {
-            sender.sendMessage(ChatColor.YELLOW + "Usage: /drakesworlds create <world_name> [profile] [seed]");
+            sender.sendMessage(ChatColor.YELLOW + "Usage: /" + label + " create <world_name> [profile] [seed]");
             return true;
         }
 
@@ -100,23 +115,37 @@ public final class DrakesWorldsCommand implements CommandExecutor, TabCompleter 
     }
 
     private boolean handleListProfiles(CommandSender sender) {
+        if (!requirePermission(sender, "drakesworlds.admin")) {
+            return true;
+        }
         sender.sendMessage(ChatColor.GOLD + "DrakesWorlds profiles:");
         for (WorldProfile profile : plugin.getWorldsConfig().getProfiles().values()) {
             sender.sendMessage(ChatColor.GRAY + "- " + ChatColor.AQUA + profile.id());
         }
+        sender.sendMessage(ChatColor.GRAY + "Default profile: " + ChatColor.AQUA + plugin.getWorldsConfig().getDefaultProfileId());
+        sender.sendMessage(ChatColor.GRAY + "Default world: " + ChatColor.AQUA + plugin.getWorldsConfig().getDefaultWorldName());
         return true;
     }
 
     private boolean handleReload(CommandSender sender) {
+        if (!requirePermission(sender, "drakesworlds.admin")) {
+            return true;
+        }
         plugin.getWorldsConfig().reload();
         WorldsConfig config = plugin.getWorldsConfig();
+        plugin.getWorldBootstrapService().ensureConfiguredDefaultWorldLoaded();
+        plugin.getWorldBootstrapService().syncLevelNameWithConfiguredDefaultWorld();
         sender.sendMessage(ChatColor.GREEN + "DrakesWorlds reloaded. Profiles: " + config.getProfiles().keySet());
+        sender.sendMessage(ChatColor.GREEN + "Default world: " + config.getDefaultWorldName());
         return true;
     }
 
-    private boolean handleWorldInfo(CommandSender sender, String[] args) {
+    private boolean handleWorldInfo(CommandSender sender, String[] args, String label) {
+        if (!requirePermission(sender, "drakesworlds.admin")) {
+            return true;
+        }
         if (args.length < 2) {
-            sender.sendMessage(ChatColor.YELLOW + "Usage: /drakesworlds worldinfo <world>");
+            sender.sendMessage(ChatColor.YELLOW + "Usage: /" + label + " worldinfo <world>");
             return true;
         }
         World world = Bukkit.getWorld(args[1]);
@@ -133,12 +162,104 @@ public final class DrakesWorldsCommand implements CommandExecutor, TabCompleter 
         return true;
     }
 
+    private boolean handleListWorlds(CommandSender sender) {
+        if (!requirePermission(sender, "drakesworlds.teleport")) {
+            return true;
+        }
+        sender.sendMessage(ChatColor.GOLD + "Loaded worlds:");
+        for (World world : Bukkit.getWorlds()) {
+            sender.sendMessage(ChatColor.GRAY + "- " + ChatColor.AQUA + world.getName()
+                    + ChatColor.DARK_GRAY + " (" + world.getEnvironment().name() + ")");
+        }
+        return true;
+    }
+
+    private boolean handleTeleport(CommandSender sender, String[] args, String label) {
+        if (!requirePermission(sender, "drakesworlds.teleport")) {
+            return true;
+        }
+        if (args.length < 2) {
+            sender.sendMessage(ChatColor.YELLOW + "Usage: /" + label + " tp <world> [player]");
+            return true;
+        }
+
+        World world = Bukkit.getWorld(args[1]);
+        if (world == null) {
+            sender.sendMessage(ChatColor.RED + "World not loaded: " + args[1]);
+            return true;
+        }
+
+        Player target;
+        if (args.length >= 3) {
+            target = Bukkit.getPlayerExact(args[2]);
+            if (target == null) {
+                sender.sendMessage(ChatColor.RED + "Player not found: " + args[2]);
+                return true;
+            }
+        } else if (sender instanceof Player playerSender) {
+            target = playerSender;
+        } else {
+            sender.sendMessage(ChatColor.RED + "Console must specify a player: /" + label + " tp <world> <player>");
+            return true;
+        }
+
+        target.teleport(world.getSpawnLocation());
+        sender.sendMessage(ChatColor.GREEN + "Teleported " + target.getName() + " to " + world.getName());
+        if (!sender.getName().equalsIgnoreCase(target.getName())) {
+            target.sendMessage(ChatColor.GREEN + "Teleported to world: " + ChatColor.YELLOW + world.getName());
+        }
+        return true;
+    }
+
+    private boolean handleSpawn(CommandSender sender, String[] args, String label) {
+        if (!requirePermission(sender, "drakesworlds.teleport")) {
+            return true;
+        }
+
+        Player target;
+        if (args.length >= 2) {
+            target = Bukkit.getPlayerExact(args[1]);
+            if (target == null) {
+                sender.sendMessage(ChatColor.RED + "Player not found: " + args[1]);
+                return true;
+            }
+        } else if (sender instanceof Player playerSender) {
+            target = playerSender;
+        } else {
+            sender.sendMessage(ChatColor.RED + "Console must specify a player: /" + label + " spawn <player>");
+            return true;
+        }
+
+        World world = plugin.getWorldBootstrapService().ensureConfiguredDefaultWorldLoaded();
+        target.teleport(world.getSpawnLocation());
+        sender.sendMessage(ChatColor.GREEN + "Teleported " + target.getName() + " to default world: " + world.getName());
+        if (!sender.getName().equalsIgnoreCase(target.getName())) {
+            target.sendMessage(ChatColor.GREEN + "Teleported to default world: " + ChatColor.YELLOW + world.getName());
+        }
+        return true;
+    }
+
     private void sendHelp(CommandSender sender) {
         sender.sendMessage(ChatColor.GOLD + "DrakesWorlds commands:");
-        sender.sendMessage(ChatColor.YELLOW + "/drakesworlds create <world_name> [profile] [seed]");
-        sender.sendMessage(ChatColor.YELLOW + "/drakesworlds listprofiles");
-        sender.sendMessage(ChatColor.YELLOW + "/drakesworlds worldinfo <world>");
-        sender.sendMessage(ChatColor.YELLOW + "/drakesworlds reload");
+        if (sender.hasPermission("drakesworlds.admin")) {
+            sender.sendMessage(ChatColor.YELLOW + "/drakesworlds create <world_name> [profile] [seed]");
+            sender.sendMessage(ChatColor.YELLOW + "/drakesworlds listprofiles");
+            sender.sendMessage(ChatColor.YELLOW + "/drakesworlds worldinfo <world>");
+            sender.sendMessage(ChatColor.YELLOW + "/drakesworlds reload");
+        }
+        if (sender.hasPermission("drakesworlds.teleport")) {
+            sender.sendMessage(ChatColor.YELLOW + "/drakesworlds listworlds");
+            sender.sendMessage(ChatColor.YELLOW + "/drakesworlds tp <world> [player]");
+            sender.sendMessage(ChatColor.YELLOW + "/drakesworlds spawn [player]");
+        }
+    }
+
+    private boolean requirePermission(CommandSender sender, String permission) {
+        if (sender.hasPermission(permission)) {
+            return true;
+        }
+        sender.sendMessage(ChatColor.RED + "No permission.");
+        return false;
     }
 
     private static List<String> filterByPrefix(List<String> values, String prefix) {

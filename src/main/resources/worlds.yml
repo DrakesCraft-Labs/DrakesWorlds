@@ -12,6 +12,26 @@ default-profile: wild_natural
 # definidos en "startup-worlds" al iniciar el servidor.
 auto-create-on-startup: true
 
+# Mundo principal que DrakesWorlds considera "default".
+default-world:
+  # Nombre del mundo principal.
+  # Debe existir en startup-worlds o DrakesWorlds lo creara automaticamente.
+  name: drakes_wild
+
+  # Si esta en true, jugadores que entren en otro mundo se enviaran
+  # al spawn del mundo principal.
+  enforce-on-join: true
+
+  # Si esta en true, solo forza en primer ingreso del jugador.
+  # false = lo aplica en cada join/respawn.
+  only-first-join: false
+
+  # Si esta en true, DrakesWorlds sincroniza server.properties -> level-name
+  # para que en proximos reinicios el mundo default sea el de DrakesWorlds.
+  # [DANGER] Cambiar esto puede afectar servidores existentes si dependes
+  # del mundo "world" vanilla como principal.
+  sync-level-name: true
+
 # [DANGER] Si cambias parametros de un mundo ya generado,
 # los chunks existentes NO cambian automaticamente.
 # Para ver cambios reales debes pregenerar de nuevo o crear
@@ -84,4 +104,3 @@ profiles:
       enable-custom-pines: true
       pine-min-height: 9
       pine-max-height: 16
-

@@ -7,10 +7,12 @@ description: Advanced world generation profiles for DrakesCraft
 commands:
   drakesworlds:
     description: Manage DrakesWorlds profiles and world generation
-    usage: /drakesworlds <create|listprofiles|reload|worldinfo>
-    permission: drakesworlds.admin
+    usage: /drakesworlds <create|listprofiles|reload|worldinfo|listworlds|tp|spawn>
     aliases: [dworld, drworld, dworlds]
 permissions:
   drakesworlds.admin:
     description: Allows use of DrakesWorlds administration command
     default: op
+  drakesworlds.teleport:
+    description: Allows using world teleport commands in DrakesWorlds
+    default: true

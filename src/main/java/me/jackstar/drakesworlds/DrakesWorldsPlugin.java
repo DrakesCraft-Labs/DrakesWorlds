@@ -5,6 +5,7 @@ import me.jackstar.drakesworlds.config.WorldsConfig;
 import me.jackstar.drakesworlds.domain.WorldProfile;
 import me.jackstar.drakesworlds.generation.DrakesBiomeProvider;
 import me.jackstar.drakesworlds.generation.DrakesChunkGenerator;
+import me.jackstar.drakesworlds.listener.DefaultWorldRoutingListener;
 import me.jackstar.drakesworlds.service.WorldBootstrapService;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.generator.ChunkGenerator;
@@ -26,6 +27,9 @@ public final class DrakesWorldsPlugin extends JavaPlugin {
 
         registerCommands();
         this.worldBootstrapService.createStartupWorlds();
+        this.worldBootstrapService.ensureConfiguredDefaultWorldLoaded();
+        this.worldBootstrapService.syncLevelNameWithConfiguredDefaultWorld();
+        getServer().getPluginManager().registerEvents(new DefaultWorldRoutingListener(this), this);
 
         getLogger().info("DrakesWorlds enabled. Loaded profiles: " + worldsConfig.getProfiles().keySet());
     }

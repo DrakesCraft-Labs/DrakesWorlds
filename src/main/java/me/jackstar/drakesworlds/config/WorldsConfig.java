@@ -26,6 +26,10 @@ public final class WorldsConfig {
     private FileConfiguration config;
     private String defaultProfileId;
     private boolean autoCreateOnStartup;
+    private String defaultWorldName;
+    private boolean enforceDefaultWorldOnJoin;
+    private boolean enforceDefaultWorldOnlyFirstJoin;
+    private boolean syncLevelNameInServerProperties;
     private final Map<String, WorldProfile> profiles = new HashMap<>();
     private final List<StartupWorldSpec> startupWorlds = new ArrayList<>();
 
@@ -39,6 +43,10 @@ public final class WorldsConfig {
 
         this.defaultProfileId = config.getString("default-profile", "wild_natural");
         this.autoCreateOnStartup = config.getBoolean("auto-create-on-startup", true);
+        this.defaultWorldName = config.getString("default-world.name", "drakes_wild").trim();
+        this.enforceDefaultWorldOnJoin = config.getBoolean("default-world.enforce-on-join", true);
+        this.enforceDefaultWorldOnlyFirstJoin = config.getBoolean("default-world.only-first-join", false);
+        this.syncLevelNameInServerProperties = config.getBoolean("default-world.sync-level-name", true);
 
         this.profiles.clear();
         loadProfiles();
@@ -70,6 +78,22 @@ public final class WorldsConfig {
 
     public boolean isAutoCreateOnStartup() {
         return autoCreateOnStartup;
+    }
+
+    public String getDefaultWorldName() {
+        return defaultWorldName;
+    }
+
+    public boolean isEnforceDefaultWorldOnJoin() {
+        return enforceDefaultWorldOnJoin;
+    }
+
+    public boolean isEnforceDefaultWorldOnlyFirstJoin() {
+        return enforceDefaultWorldOnlyFirstJoin;
+    }
+
+    public boolean isSyncLevelNameInServerProperties() {
+        return syncLevelNameInServerProperties;
     }
 
     public Map<String, WorldProfile> getProfiles() {
