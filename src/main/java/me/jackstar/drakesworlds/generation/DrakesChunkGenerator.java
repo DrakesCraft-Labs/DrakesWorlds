@@ -68,6 +68,7 @@ public final class DrakesChunkGenerator extends ChunkGenerator {
         int minY = worldInfo.getMinHeight();
         int maxY = worldInfo.getMaxHeight();
         int seaLevel = profile.seaLevel();
+        int[][] surfaceHeights = new int[16][16];
 
         for (int localX = 0; localX < 16; localX++) {
             int worldX = (chunkX << 4) + localX;
@@ -76,6 +77,7 @@ public final class DrakesChunkGenerator extends ChunkGenerator {
 
                 Biome biome = biomeProvider.getBiome(worldInfo, worldX, seaLevel, worldZ);
                 int surfaceY = computeSurfaceY(worldX, worldZ, biome, minY, maxY);
+                surfaceHeights[localX][localZ] = surfaceY;
 
                 for (int y = minY + 1; y <= surfaceY; y++) {
                     Material block = resolveColumnMaterial(biome, y, surfaceY, worldX, worldZ);
@@ -94,7 +96,8 @@ public final class DrakesChunkGenerator extends ChunkGenerator {
             }
         }
 
-        carveCaves(worldInfo, chunkX, chunkZ, chunkData, minY, maxY, seaLevel);
+        carveCaves(chunkX, chunkZ, chunkData, minY, seaLevel, surfaceHeights);
+        generateOres(worldInfo, chunkX, chunkZ, chunkData, minY, maxY);
     }
 
     private int computeSurfaceY(int worldX, int worldZ, Biome biome, int minY, int maxY) {
@@ -152,19 +155,23 @@ public final class DrakesChunkGenerator extends ChunkGenerator {
         return height;
     }
 
-    private void carveCaves(WorldInfo worldInfo, int chunkX, int chunkZ, ChunkData chunkData, int minY, int maxY, int seaLevel) {
-        int topLimit = Math.min(maxY - 12, seaLevel + 55);
+    private void carveCaves(int chunkX, int chunkZ, ChunkData chunkData, int minY, int seaLevel, int[][] surfaceHeights) {
         for (int localX = 0; localX < 16; localX++) {
             int worldX = (chunkX << 4) + localX;
             for (int localZ = 0; localZ < 16; localZ++) {
                 int worldZ = (chunkZ << 4) + localZ;
+                int surfaceY = surfaceHeights[localX][localZ];
+                int topLimit = Math.min(surfaceY - 10, seaLevel - 2);
+                if (topLimit <= minY + 10) {
+                    continue;
+                }
                 for (int y = minY + 8; y <= topLimit; y++) {
                     Material current = chunkData.getType(localX, y, localZ);
                     if (current == Material.AIR || current == Material.WATER || current == Material.BEDROCK) {
                         continue;
                     }
                     if (shouldCarveCave(worldX, y, worldZ, seaLevel)) {
-                        chunkData.setBlock(localX, y, localZ, y <= seaLevel - 3 ? Material.WATER : Material.AIR);
+                        chunkData.setBlock(localX, y, localZ, y <= (minY + 12) ? Material.LAVA : Material.AIR);
                     }
                 }
             }
@@ -180,10 +187,61 @@ public final class DrakesChunkGenerator extends ChunkGenerator {
         double tunnel = Math.abs(nB);
         double worm = Math.abs(nC);
 
-        double depthBias = y < seaLevel ? 0.03d : -0.02d;
+        double depthBias = y < seaLevel ? 0.04d : -0.02d;
         boolean chamberCut = chamber > (0.63d + depthBias) && worm < 0.30d;
         boolean tunnelCut = chamber > (0.52d + depthBias) && tunnel < 0.14d;
         return chamberCut || tunnelCut;
+    }
+
+    private void generateOres(WorldInfo worldInfo, int chunkX, int chunkZ, ChunkData chunkData, int minY, int maxY) {
+        Random oreRandom = new Random(worldInfo.getSeed()
+                ^ (chunkX * 341873128712L)
+                ^ (chunkZ * 132897987541L)
+                ^ 0x9E3779B97F4A7C15L);
+
+        placeOreVeins(oreRandom, chunkData, Material.COAL_ORE, Material.DEEPSLATE_COAL_ORE, 22, 14, Math.max(minY + 8, 20), Math.min(maxY - 8, 190));
+        placeOreVeins(oreRandom, chunkData, Material.IRON_ORE, Material.DEEPSLATE_IRON_ORE, 20, 10, Math.max(minY + 6, -40), Math.min(maxY - 8, 130));
+        placeOreVeins(oreRandom, chunkData, Material.COPPER_ORE, Material.DEEPSLATE_COPPER_ORE, 18, 11, Math.max(minY + 6, -20), Math.min(maxY - 8, 110));
+        placeOreVeins(oreRandom, chunkData, Material.REDSTONE_ORE, Material.DEEPSLATE_REDSTONE_ORE, 14, 8, Math.max(minY + 6, -58), Math.min(maxY - 8, 16));
+        placeOreVeins(oreRandom, chunkData, Material.LAPIS_ORE, Material.DEEPSLATE_LAPIS_ORE, 8, 7, Math.max(minY + 6, -48), Math.min(maxY - 8, 32));
+        placeOreVeins(oreRandom, chunkData, Material.GOLD_ORE, Material.DEEPSLATE_GOLD_ORE, 9, 8, Math.max(minY + 6, -52), Math.min(maxY - 8, 36));
+        placeOreVeins(oreRandom, chunkData, Material.DIAMOND_ORE, Material.DEEPSLATE_DIAMOND_ORE, 8, 6, Math.max(minY + 6, -58), Math.min(maxY - 8, 20));
+        placeOreVeins(oreRandom, chunkData, Material.EMERALD_ORE, Material.DEEPSLATE_EMERALD_ORE, 4, 4, Math.max(minY + 6, -16), Math.min(maxY - 8, 180));
+    }
+
+    private void placeOreVeins(Random oreRandom, ChunkData chunkData, Material ore, Material deepOre,
+                               int attempts, int veinSize, int minOreY, int maxOreY) {
+        if (minOreY >= maxOreY) {
+            return;
+        }
+        for (int attempt = 0; attempt < attempts; attempt++) {
+            int originX = oreRandom.nextInt(16);
+            int originZ = oreRandom.nextInt(16);
+            int originY = minOreY + oreRandom.nextInt(Math.max(1, maxOreY - minOreY));
+
+            for (int i = 0; i < veinSize; i++) {
+                int x = originX + oreRandom.nextInt(5) - 2;
+                int y = originY + oreRandom.nextInt(5) - 2;
+                int z = originZ + oreRandom.nextInt(5) - 2;
+                if (x < 0 || x > 15 || z < 0 || z > 15) {
+                    continue;
+                }
+                Material current = chunkData.getType(x, y, z);
+                if (!isReplaceableStone(current)) {
+                    continue;
+                }
+                chunkData.setBlock(x, y, z, y <= 0 ? deepOre : ore);
+            }
+        }
+    }
+
+    private static boolean isReplaceableStone(Material type) {
+        return type == Material.STONE
+                || type == Material.DEEPSLATE
+                || type == Material.TUFF
+                || type == Material.ANDESITE
+                || type == Material.DIORITE
+                || type == Material.GRANITE;
     }
 
     private Material resolveColumnMaterial(Biome biome, int y, int surfaceY, int worldX, int worldZ) {
