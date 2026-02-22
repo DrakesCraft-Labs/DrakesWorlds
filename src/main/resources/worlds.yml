@@ -17,6 +17,8 @@ default-world:
   # Nombre del mundo principal.
   # Debe existir en startup-worlds o DrakesWorlds lo creara automaticamente.
   name: drakes_wild
+  # Perfil de generacion usado para mapear el generador en bukkit.yml.
+  profile: wild_natural
 
   # Si esta en true, jugadores que entren en otro mundo se enviaran
   # al spawn del mundo principal.
@@ -52,15 +54,15 @@ profiles:
       # Nivel del mar.
       sea-level: 63
       # Altura base del terreno. Mas alto = mundo mas elevado.
-      base-height: 74
+      base-height: 71
       # Intensidad general de colinas.
-      hill-amplitude: 26.0
+      hill-amplitude: 16.0
       # Intensidad de montanas grandes.
-      mountain-amplitude: 54.0
+      mountain-amplitude: 34.0
       # Cuanto bajan los valles.
-      valley-depth: 17.0
+      valley-depth: 12.0
       # Rugosidad fina para evitar superficies planas artificiales.
-      detail-amplitude: 6.0
+      detail-amplitude: 2.6
       # Escala del ruido de claros dentro de bosque.
       clearing-scale: 0.0038
       # Umbral para decidir si aparece un claro.

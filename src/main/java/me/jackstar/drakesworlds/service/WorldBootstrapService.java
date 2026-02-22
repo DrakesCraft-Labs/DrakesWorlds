@@ -8,6 +8,7 @@ import me.jackstar.drakesworlds.generation.DrakesChunkGenerator;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.WorldCreator;
+import org.bukkit.configuration.file.YamlConfiguration;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -63,7 +64,7 @@ public final class WorldBootstrapService {
         }
 
         plugin.getLogger().warning("Default world '" + defaultWorldName + "' is not in startup-worlds. Creating it with default profile.");
-        return createWorld(defaultWorldName, worldsConfig.getDefaultProfileId(), World.Environment.NORMAL, null, true);
+        return createWorld(defaultWorldName, worldsConfig.getDefaultWorldProfileId(), World.Environment.NORMAL, null, true);
     }
 
     public void syncLevelNameWithConfiguredDefaultWorld() {
@@ -97,6 +98,32 @@ public final class WorldBootstrapService {
             plugin.getLogger().warning("Synchronized server.properties level-name from '" + current + "' to '" + expected + "'. Restart required to fully apply.");
         } catch (IOException ex) {
             plugin.getLogger().warning("Could not write server.properties: " + ex.getMessage());
+        }
+    }
+
+    public void syncBukkitDefaultWorldGenerator() {
+        File bukkitYml = new File(plugin.getServer().getWorldContainer(), "bukkit.yml");
+        if (!bukkitYml.exists()) {
+            plugin.getLogger().warning("bukkit.yml not found. Could not sync world generator.");
+            return;
+        }
+
+        YamlConfiguration yaml = YamlConfiguration.loadConfiguration(bukkitYml);
+        String worldName = worldsConfig.getDefaultWorldName();
+        String profileId = worldsConfig.getDefaultWorldProfileId();
+        String expected = plugin.getName() + ":" + profileId;
+        String path = "worlds." + worldName + ".generator";
+        String current = yaml.getString(path, "");
+        if (expected.equalsIgnoreCase(current)) {
+            return;
+        }
+
+        yaml.set(path, expected);
+        try {
+            yaml.save(bukkitYml);
+            plugin.getLogger().warning("Synchronized bukkit.yml generator for world '" + worldName + "' to '" + expected + "'. Restart required to fully apply.");
+        } catch (IOException ex) {
+            plugin.getLogger().warning("Could not write bukkit.yml: " + ex.getMessage());
         }
     }
 

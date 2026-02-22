@@ -27,6 +27,7 @@ public final class WorldsConfig {
     private String defaultProfileId;
     private boolean autoCreateOnStartup;
     private String defaultWorldName;
+    private String defaultWorldProfileId;
     private boolean enforceDefaultWorldOnJoin;
     private boolean enforceDefaultWorldOnlyFirstJoin;
     private boolean syncLevelNameInServerProperties;
@@ -44,6 +45,7 @@ public final class WorldsConfig {
         this.defaultProfileId = config.getString("default-profile", "wild_natural");
         this.autoCreateOnStartup = config.getBoolean("auto-create-on-startup", true);
         this.defaultWorldName = config.getString("default-world.name", "drakes_wild").trim();
+        this.defaultWorldProfileId = config.getString("default-world.profile", this.defaultProfileId).trim().toLowerCase(Locale.ROOT);
         this.enforceDefaultWorldOnJoin = config.getBoolean("default-world.enforce-on-join", true);
         this.enforceDefaultWorldOnlyFirstJoin = config.getBoolean("default-world.only-first-join", false);
         this.syncLevelNameInServerProperties = config.getBoolean("default-world.sync-level-name", true);
@@ -86,6 +88,10 @@ public final class WorldsConfig {
 
     public boolean isEnforceDefaultWorldOnJoin() {
         return enforceDefaultWorldOnJoin;
+    }
+
+    public String getDefaultWorldProfileId() {
+        return defaultWorldProfileId;
     }
 
     public boolean isEnforceDefaultWorldOnlyFirstJoin() {

@@ -26,9 +26,19 @@ public final class DrakesWorldsPlugin extends JavaPlugin {
         this.worldBootstrapService = new WorldBootstrapService(this, worldsConfig);
 
         registerCommands();
-        this.worldBootstrapService.createStartupWorlds();
-        this.worldBootstrapService.ensureConfiguredDefaultWorldLoaded();
+        this.worldBootstrapService.syncBukkitDefaultWorldGenerator();
         this.worldBootstrapService.syncLevelNameWithConfiguredDefaultWorld();
+        boolean startupPhase = getServer().getWorlds().isEmpty();
+        if (startupPhase) {
+            getLogger().info("Startup phase detected: deferring world bootstrap to first server tick.");
+            getServer().getScheduler().runTask(this, () -> {
+                this.worldBootstrapService.createStartupWorlds();
+                this.worldBootstrapService.ensureConfiguredDefaultWorldLoaded();
+            });
+        } else {
+            this.worldBootstrapService.createStartupWorlds();
+            this.worldBootstrapService.ensureConfiguredDefaultWorldLoaded();
+        }
         getServer().getPluginManager().registerEvents(new DefaultWorldRoutingListener(this), this);
 
         getLogger().info("DrakesWorlds enabled. Loaded profiles: " + worldsConfig.getProfiles().keySet());

@@ -93,30 +93,22 @@ public final class DrakesChunkGenerator extends ChunkGenerator {
     }
 
     private int computeSurfaceY(int worldX, int worldZ, Biome biome, int minY, int maxY) {
-        double continental = continentalNoise.noise(worldX, worldZ, 0.45d, 0.5d, true);
-        double mountain = Math.abs(mountainNoise.noise(worldX, worldZ, 0.55d, 0.5d, true));
-        double ridges = Math.abs(ridgeNoise.noise(worldX, worldZ, 0.75d, 0.5d, true));
-        double valleys = Math.abs(valleyNoise.noise(worldX, worldZ, 0.40d, 0.5d, true));
-        double detail = detailNoise.noise(worldX, worldZ, 0.90d, 0.5d, true);
+        // Terrain smoothing pass to avoid needle-like spikes and harsh 1-block cliffs.
+        double center = computeRawHeight(worldX, worldZ, biome);
+        double north = computeRawHeight(worldX, worldZ - 1, biome);
+        double south = computeRawHeight(worldX, worldZ + 1, biome);
+        double east = computeRawHeight(worldX + 1, worldZ, biome);
+        double west = computeRawHeight(worldX - 1, worldZ, biome);
         double clearings = clearingNoise.noise(worldX, worldZ, 0.50d, 0.5d, true);
 
-        double height = profile.baseHeight()
-                + (continental * profile.hillAmplitude())
-                + (mountain * profile.mountainAmplitude())
-                + (ridges * (profile.mountainAmplitude() * 0.45d))
-                - (valleys * profile.valleyDepth())
-                + (detail * profile.detailAmplitude());
+        double height = (center * 0.55d)
+                + (north * 0.1125d)
+                + (south * 0.1125d)
+                + (east * 0.1125d)
+                + (west * 0.1125d);
 
-        if (isSwampBiome(biome)) {
-            height -= 8.0d;
-        } else if (isMountainBiome(biome)) {
-            height += 12.0d;
-        } else if (biome == Biome.BADLANDS || biome == Biome.WOODED_BADLANDS) {
-            height += 4.0d;
-        }
-
-        if ((biome == Biome.MEADOW || biome == Biome.PLAINS) && clearings > profile.clearingThreshold()) {
-            double flattened = profile.baseHeight() + 4.0d;
+        if ((isWoodlandBiome(biome) || biome == Biome.MEADOW || biome == Biome.PLAINS) && clearings > profile.clearingThreshold()) {
+            double flattened = profile.baseHeight() + 3.0d;
             height = lerp(height, flattened, profile.clearingFlattening());
         }
 
@@ -124,6 +116,35 @@ public final class DrakesChunkGenerator extends ChunkGenerator {
         clamped = Math.max(minY + 6, clamped);
         clamped = Math.min(maxY - 8, clamped);
         return clamped;
+    }
+
+    private double computeRawHeight(int worldX, int worldZ, Biome biome) {
+        double continental = continentalNoise.noise(worldX, worldZ, 0.35d, 0.5d, true);
+        double mountain = Math.max(0.0d, mountainNoise.noise(worldX, worldZ, 0.45d, 0.5d, true));
+        mountain = Math.pow(mountain, 1.35d);
+
+        double ridges = ridgeNoise.noise(worldX, worldZ, 0.55d, 0.5d, true);
+        ridges = 1.0d - Math.abs(ridges);
+        ridges = Math.pow(Math.max(0.0d, ridges), 2.1d);
+
+        double valleys = Math.max(0.0d, valleyNoise.noise(worldX, worldZ, 0.30d, 0.5d, true));
+        double detail = detailNoise.noise(worldX, worldZ, 0.40d, 0.5d, true) * 0.55d;
+
+        double height = profile.baseHeight()
+                + (continental * profile.hillAmplitude())
+                + (mountain * (profile.mountainAmplitude() * 0.72d))
+                + (ridges * (profile.mountainAmplitude() * 0.24d))
+                - (valleys * (profile.valleyDepth() * 0.65d))
+                + (detail * profile.detailAmplitude());
+
+        if (isSwampBiome(biome)) {
+            height -= 6.0d;
+        } else if (isMountainBiome(biome)) {
+            height += 6.0d;
+        } else if (biome == Biome.BADLANDS || biome == Biome.WOODED_BADLANDS) {
+            height += 2.0d;
+        }
+        return height;
     }
 
     private Material resolveColumnMaterial(Biome biome, int y, int surfaceY, int worldX, int worldZ) {
@@ -187,19 +208,19 @@ public final class DrakesChunkGenerator extends ChunkGenerator {
             long seed = worldInfo.getSeed();
 
             this.continentalNoise = new SimplexOctaveGenerator(seed, 8);
-            this.continentalNoise.setScale(0.00105d);
+            this.continentalNoise.setScale(0.00090d);
 
             this.mountainNoise = new SimplexOctaveGenerator(seed ^ 0x9E3779B97F4A7C15L, 8);
-            this.mountainNoise.setScale(0.00175d);
+            this.mountainNoise.setScale(0.00115d);
 
             this.ridgeNoise = new SimplexOctaveGenerator(seed ^ 0xC2B2AE3D27D4EB4FL, 7);
-            this.ridgeNoise.setScale(0.0022d);
+            this.ridgeNoise.setScale(0.00135d);
 
             this.valleyNoise = new SimplexOctaveGenerator(seed ^ 0x165667B19E3779F9L, 6);
-            this.valleyNoise.setScale(0.0013d);
+            this.valleyNoise.setScale(0.00095d);
 
             this.detailNoise = new SimplexOctaveGenerator(seed ^ 0x85EBCA77C2B2AE63L, 5);
-            this.detailNoise.setScale(0.0050d);
+            this.detailNoise.setScale(0.00180d);
 
             this.clearingNoise = new SimplexOctaveGenerator(seed ^ 0x27D4EB2F165667C5L, 6);
             this.clearingNoise.setScale(profile.clearingScale());
@@ -223,6 +244,13 @@ public final class DrakesChunkGenerator extends ChunkGenerator {
                 || name.contains("SLOPES")
                 || biome == Biome.WINDSWEPT_HILLS
                 || biome == Biome.GROVE;
+    }
+
+    private static boolean isWoodlandBiome(Biome biome) {
+        String name = biome.name().toUpperCase(Locale.ROOT);
+        return name.contains("FOREST")
+                || name.contains("TAIGA")
+                || biome == Biome.CHERRY_GROVE;
     }
 
     private static double lerp(double from, double to, double factor) {
