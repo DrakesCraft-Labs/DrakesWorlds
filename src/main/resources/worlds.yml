@@ -56,13 +56,13 @@ profiles:
       # Altura base del terreno. Mas alto = mundo mas elevado.
       base-height: 71
       # Intensidad general de colinas.
-      hill-amplitude: 16.0
+      hill-amplitude: 14.0
       # Intensidad de montanas grandes.
-      mountain-amplitude: 34.0
+      mountain-amplitude: 28.0
       # Cuanto bajan los valles.
-      valley-depth: 12.0
+      valley-depth: 10.0
       # Rugosidad fina para evitar superficies planas artificiales.
-      detail-amplitude: 2.6
+      detail-amplitude: 1.8
       # Escala del ruido de claros dentro de bosque.
       clearing-scale: 0.0038
       # Umbral para decidir si aparece un claro.

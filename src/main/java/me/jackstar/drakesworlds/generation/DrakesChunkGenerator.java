@@ -29,6 +29,9 @@ public final class DrakesChunkGenerator extends ChunkGenerator {
     private volatile SimplexOctaveGenerator valleyNoise;
     private volatile SimplexOctaveGenerator detailNoise;
     private volatile SimplexOctaveGenerator clearingNoise;
+    private volatile SimplexOctaveGenerator caveNoiseA;
+    private volatile SimplexOctaveGenerator caveNoiseB;
+    private volatile SimplexOctaveGenerator caveNoiseC;
 
     public DrakesChunkGenerator(WorldProfile profile, DrakesBiomeProvider biomeProvider) {
         this.profile = profile;
@@ -90,22 +93,24 @@ public final class DrakesChunkGenerator extends ChunkGenerator {
                 }
             }
         }
+
+        carveCaves(worldInfo, chunkX, chunkZ, chunkData, minY, maxY, seaLevel);
     }
 
     private int computeSurfaceY(int worldX, int worldZ, Biome biome, int minY, int maxY) {
-        // Terrain smoothing pass to avoid needle-like spikes and harsh 1-block cliffs.
-        double center = computeRawHeight(worldX, worldZ, biome);
-        double north = computeRawHeight(worldX, worldZ - 1, biome);
-        double south = computeRawHeight(worldX, worldZ + 1, biome);
-        double east = computeRawHeight(worldX + 1, worldZ, biome);
-        double west = computeRawHeight(worldX - 1, worldZ, biome);
+        // 3x3 smoothing to avoid needle-like terrain and abrupt checker patterns.
+        double center = computeRawHeight(worldX, worldZ, biome) * 0.32d;
+        double north = computeRawHeight(worldX, worldZ - 1, biome) * 0.12d;
+        double south = computeRawHeight(worldX, worldZ + 1, biome) * 0.12d;
+        double east = computeRawHeight(worldX + 1, worldZ, biome) * 0.12d;
+        double west = computeRawHeight(worldX - 1, worldZ, biome) * 0.12d;
+        double nw = computeRawHeight(worldX - 1, worldZ - 1, biome) * 0.08d;
+        double ne = computeRawHeight(worldX + 1, worldZ - 1, biome) * 0.08d;
+        double sw = computeRawHeight(worldX - 1, worldZ + 1, biome) * 0.08d;
+        double se = computeRawHeight(worldX + 1, worldZ + 1, biome) * 0.08d;
         double clearings = clearingNoise.noise(worldX, worldZ, 0.50d, 0.5d, true);
 
-        double height = (center * 0.55d)
-                + (north * 0.1125d)
-                + (south * 0.1125d)
-                + (east * 0.1125d)
-                + (west * 0.1125d);
+        double height = center + north + south + east + west + nw + ne + sw + se;
 
         if ((isWoodlandBiome(biome) || biome == Biome.MEADOW || biome == Biome.PLAINS) && clearings > profile.clearingThreshold()) {
             double flattened = profile.baseHeight() + 3.0d;
@@ -121,30 +126,64 @@ public final class DrakesChunkGenerator extends ChunkGenerator {
     private double computeRawHeight(int worldX, int worldZ, Biome biome) {
         double continental = continentalNoise.noise(worldX, worldZ, 0.35d, 0.5d, true);
         double mountain = Math.max(0.0d, mountainNoise.noise(worldX, worldZ, 0.45d, 0.5d, true));
-        mountain = Math.pow(mountain, 1.35d);
+        mountain = Math.pow(mountain, 1.6d);
 
         double ridges = ridgeNoise.noise(worldX, worldZ, 0.55d, 0.5d, true);
         ridges = 1.0d - Math.abs(ridges);
-        ridges = Math.pow(Math.max(0.0d, ridges), 2.1d);
+        ridges = Math.pow(Math.max(0.0d, ridges), 1.75d);
 
         double valleys = Math.max(0.0d, valleyNoise.noise(worldX, worldZ, 0.30d, 0.5d, true));
-        double detail = detailNoise.noise(worldX, worldZ, 0.40d, 0.5d, true) * 0.55d;
+        double detail = detailNoise.noise(worldX, worldZ, 0.35d, 0.5d, true) * 0.35d;
 
         double height = profile.baseHeight()
                 + (continental * profile.hillAmplitude())
-                + (mountain * (profile.mountainAmplitude() * 0.72d))
-                + (ridges * (profile.mountainAmplitude() * 0.24d))
-                - (valleys * (profile.valleyDepth() * 0.65d))
+                + (mountain * (profile.mountainAmplitude() * 0.58d))
+                + (ridges * (profile.mountainAmplitude() * 0.16d))
+                - (valleys * (profile.valleyDepth() * 0.48d))
                 + (detail * profile.detailAmplitude());
 
         if (isSwampBiome(biome)) {
-            height -= 6.0d;
+            height -= 4.0d;
         } else if (isMountainBiome(biome)) {
-            height += 6.0d;
+            height += 4.0d;
         } else if (biome == Biome.BADLANDS || biome == Biome.WOODED_BADLANDS) {
             height += 2.0d;
         }
         return height;
+    }
+
+    private void carveCaves(WorldInfo worldInfo, int chunkX, int chunkZ, ChunkData chunkData, int minY, int maxY, int seaLevel) {
+        int topLimit = Math.min(maxY - 12, seaLevel + 55);
+        for (int localX = 0; localX < 16; localX++) {
+            int worldX = (chunkX << 4) + localX;
+            for (int localZ = 0; localZ < 16; localZ++) {
+                int worldZ = (chunkZ << 4) + localZ;
+                for (int y = minY + 8; y <= topLimit; y++) {
+                    Material current = chunkData.getType(localX, y, localZ);
+                    if (current == Material.AIR || current == Material.WATER || current == Material.BEDROCK) {
+                        continue;
+                    }
+                    if (shouldCarveCave(worldX, y, worldZ, seaLevel)) {
+                        chunkData.setBlock(localX, y, localZ, y <= seaLevel - 3 ? Material.WATER : Material.AIR);
+                    }
+                }
+            }
+        }
+    }
+
+    private boolean shouldCarveCave(int worldX, int y, int worldZ, int seaLevel) {
+        double nA = caveNoiseA.noise(worldX, y * 0.85d, worldZ, 0.70d, 0.5d, true);
+        double nB = caveNoiseB.noise(worldX, y * 1.05d, worldZ, 0.60d, 0.5d, true);
+        double nC = caveNoiseC.noise(worldX, y * 0.55d, worldZ, 0.55d, 0.5d, true);
+
+        double chamber = Math.abs(nA);
+        double tunnel = Math.abs(nB);
+        double worm = Math.abs(nC);
+
+        double depthBias = y < seaLevel ? 0.03d : -0.02d;
+        boolean chamberCut = chamber > (0.63d + depthBias) && worm < 0.30d;
+        boolean tunnelCut = chamber > (0.52d + depthBias) && tunnel < 0.14d;
+        return chamberCut || tunnelCut;
     }
 
     private Material resolveColumnMaterial(Biome biome, int y, int surfaceY, int worldX, int worldZ) {
@@ -208,22 +247,31 @@ public final class DrakesChunkGenerator extends ChunkGenerator {
             long seed = worldInfo.getSeed();
 
             this.continentalNoise = new SimplexOctaveGenerator(seed, 8);
-            this.continentalNoise.setScale(0.00090d);
+            this.continentalNoise.setScale(0.00078d);
 
             this.mountainNoise = new SimplexOctaveGenerator(seed ^ 0x9E3779B97F4A7C15L, 8);
-            this.mountainNoise.setScale(0.00115d);
+            this.mountainNoise.setScale(0.00098d);
 
             this.ridgeNoise = new SimplexOctaveGenerator(seed ^ 0xC2B2AE3D27D4EB4FL, 7);
-            this.ridgeNoise.setScale(0.00135d);
+            this.ridgeNoise.setScale(0.00108d);
 
             this.valleyNoise = new SimplexOctaveGenerator(seed ^ 0x165667B19E3779F9L, 6);
-            this.valleyNoise.setScale(0.00095d);
+            this.valleyNoise.setScale(0.00074d);
 
             this.detailNoise = new SimplexOctaveGenerator(seed ^ 0x85EBCA77C2B2AE63L, 5);
-            this.detailNoise.setScale(0.00180d);
+            this.detailNoise.setScale(0.00135d);
 
             this.clearingNoise = new SimplexOctaveGenerator(seed ^ 0x27D4EB2F165667C5L, 6);
             this.clearingNoise.setScale(profile.clearingScale());
+
+            this.caveNoiseA = new SimplexOctaveGenerator(seed ^ 0xBF58476D1CE4E5B9L, 4);
+            this.caveNoiseA.setScale(0.018d);
+
+            this.caveNoiseB = new SimplexOctaveGenerator(seed ^ 0x94D049BB133111EBL, 4);
+            this.caveNoiseB.setScale(0.024d);
+
+            this.caveNoiseC = new SimplexOctaveGenerator(seed ^ 0xD6E8FEB86659FD93L, 3);
+            this.caveNoiseC.setScale(0.011d);
 
             this.initialized = true;
         }
