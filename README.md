@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="https://raw.githubusercontent.com/DrakesCraft-Labs/DrakesWorlds/main/banner.svg" width="100%" alt="DRAKES WORLDS animated banner" />
+</p>
+
 # DrakesWorlds
 
 Plugin de generacion avanzada para Paper 1.20.6 orientado a DrakesCraft.
@@ -66,3 +70,4 @@ mvn clean package
 
 Jar esperado:
 - `target/DrakesWorlds-1.0-SNAPSHOT.jar`
+
