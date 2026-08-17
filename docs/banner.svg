@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 300" width="920" height="300" role="img" aria-label="DRAKES WORLDS animated banner">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#08111F"/><stop offset="50%" stop-color="#111C30"/><stop offset="100%" stop-color="#030712"/></linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#14B8A6"/><stop offset="100%" stop-color="#84CC16"/></linearGradient>
+    <filter id="glow"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <pattern id="grid" width="28" height="28" patternUnits="userSpaceOnUse"><path d="M 28 0 L 0 0 0 28" fill="none" stroke="#14B8A6" stroke-opacity=".10" stroke-width="1"/></pattern>
+  </defs>
+  <style>
+    @keyframes pulse { 0%,100% { opacity:.68; transform:scale(.94) } 50% { opacity:1; transform:scale(1.07) } }
+    @keyframes scan { from { transform:translateX(-250px) } to { transform:translateX(1050px) } }
+    .title { font:900 42px 'Segoe UI',sans-serif; fill:url(#accent); letter-spacing:2px; }
+    .sub { font:700 14px 'Segoe UI',sans-serif; fill:#A8B7CE; letter-spacing:3px; }
+    .badge { fill:#07111F; stroke:#14B8A6; stroke-width:1.2; }
+    .badgeText { font:700 12px monospace; fill:#14B8A6; }
+  </style>
+  <rect width="920" height="300" rx="14" fill="url(#bg)" stroke="#14B8A6" stroke-width="1.5"/>
+  <rect width="920" height="300" rx="14" fill="url(#grid)"/>
+  <rect x="-250" y="0" width="160" height="300" fill="#14B8A6" opacity=".08"><animateTransform attributeName="transform" type="translate" from="0 0" to="1170 0" dur="6s" repeatCount="indefinite"/></rect>
+  <g transform="translate(460 92)" filter="url(#glow)"><circle r="48" fill="#08111F" stroke="url(#accent)" stroke-width="3"/><circle r="30" fill="#14B8A6" opacity=".18"><animate attributeName="r" values="25;36;25" dur="2.8s" repeatCount="indefinite"/></circle><text x="0" y="14" text-anchor="middle" font-family="Segoe UI Symbol,Segoe UI,sans-serif" font-size="44" fill="#84CC16">◉</text></g>
+  <text x="460" y="182" text-anchor="middle" class="title">DRAKES WORLDS</text>
+  <text x="460" y="214" text-anchor="middle" class="sub">TERRAIN · BIOMES · EXPLORATION</text>
+  <g transform="translate(196 246)"><rect width="155" height="30" rx="6" class="badge"/><text x="12" y="20" class="badgeText">DRAKES LABS</text><rect x="172" width="178" height="30" rx="6" class="badge"/><text x="184" y="20" class="badgeText">JAVA 21 / PAPER</text><rect x="367" width="158" height="30" rx="6" class="badge"/><text x="379" y="20" class="badgeText">MC 1.21.11</text></g>
+</svg>
