@@ -1,23 +1,43 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 300" width="920" height="300" role="img" aria-label="DRAKES WORLDS animated banner">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 240" width="920" height="240" role="img" aria-label="DrakesWorlds Banner">
   <defs>
-    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#08111F"/><stop offset="50%" stop-color="#111C30"/><stop offset="100%" stop-color="#030712"/></linearGradient>
-    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#14B8A6"/><stop offset="100%" stop-color="#84CC16"/></linearGradient>
-    <filter id="glow"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-    <pattern id="grid" width="28" height="28" patternUnits="userSpaceOnUse"><path d="M 28 0 L 0 0 0 28" fill="none" stroke="#14B8A6" stroke-opacity=".10" stroke-width="1"/></pattern>
+    <linearGradient id="bFondo" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#070B14"/>
+      <stop offset="100%" stop-color="#0F172A"/>
+    </linearGradient>
+    <linearGradient id="acG" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#14B8A6"/>
+      <stop offset="100%" stop-color="#5EEAD4"/>
+    </linearGradient>
+    <radialGradient id="bHalo" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#14B8A6" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="#14B8A6" stop-opacity="0"/>
+    </radialGradient>
   </defs>
-  <style>
-    @keyframes pulse { 0%,100% { opacity:.68; transform:scale(.94) } 50% { opacity:1; transform:scale(1.07) } }
-    @keyframes scan { from { transform:translateX(-250px) } to { transform:translateX(1050px) } }
-    .title { font:900 42px 'Segoe UI',sans-serif; fill:url(#accent); letter-spacing:2px; }
-    .sub { font:700 14px 'Segoe UI',sans-serif; fill:#A8B7CE; letter-spacing:3px; }
-    .badge { fill:#07111F; stroke:#14B8A6; stroke-width:1.2; }
-    .badgeText { font:700 12px monospace; fill:#14B8A6; }
-  </style>
-  <rect width="920" height="300" rx="14" fill="url(#bg)" stroke="#14B8A6" stroke-width="1.5"/>
-  <rect width="920" height="300" rx="14" fill="url(#grid)"/>
-  <rect x="-250" y="0" width="160" height="300" fill="#14B8A6" opacity=".08"><animateTransform attributeName="transform" type="translate" from="0 0" to="1170 0" dur="6s" repeatCount="indefinite"/></rect>
-  <g transform="translate(460 92)" filter="url(#glow)"><circle r="48" fill="#08111F" stroke="url(#accent)" stroke-width="3"/><circle r="30" fill="#14B8A6" opacity=".18"><animate attributeName="r" values="25;36;25" dur="2.8s" repeatCount="indefinite"/></circle><text x="0" y="14" text-anchor="middle" font-family="Segoe UI Symbol,Segoe UI,sans-serif" font-size="44" fill="#84CC16">◉</text></g>
-  <text x="460" y="182" text-anchor="middle" class="title">DRAKES WORLDS</text>
-  <text x="460" y="214" text-anchor="middle" class="sub">TERRAIN · BIOMES · EXPLORATION</text>
-  <g transform="translate(196 246)"><rect width="155" height="30" rx="6" class="badge"/><text x="12" y="20" class="badgeText">DRAKES LABS</text><rect x="172" width="178" height="30" rx="6" class="badge"/><text x="184" y="20" class="badgeText">JAVA 21 / PAPER</text><rect x="367" width="158" height="30" rx="6" class="badge"/><text x="379" y="20" class="badgeText">MC 1.21.11</text></g>
+  <rect width="920" height="240" rx="16" fill="url(#bFondo)"/>
+  <rect width="920" height="240" rx="16" fill="url(#bHalo)"/>
+  <rect x="2" y="2" width="916" height="236" rx="14" fill="none" stroke="url(#acG)" stroke-width="2" opacity="0.4"/>
+  
+  <g transform="translate(460,70) scale(1.6)">
+
+    <circle cx="0" cy="0" r="26" fill="none" stroke="url(#acG)" stroke-width="4"/>
+    <ellipse cx="0" cy="0" rx="26" ry="10" fill="none" stroke="#5EEAD4" stroke-width="3"/>
+  </g>
+  
+  <text x="460" y="152" text-anchor="middle" font-family="'Segoe UI', system-ui, -apple-system, sans-serif" font-weight="900" font-size="28" fill="#F8FAFC" letter-spacing="2">
+    DRAKESWORLDS
+  </text>
+  <text x="460" y="184" text-anchor="middle" font-family="'Segoe UI', system-ui, -apple-system, sans-serif" font-weight="700" font-size="12" fill="#5EEAD4" letter-spacing="3" opacity="0.9">
+    MUNDOS PERSONALIZADOS · GENERACIÓN · DIMENSIONES
+  </text>
+  
+  <g transform="translate(460, 210)">
+    <rect x="-180" y="-12" width="110" height="20" rx="4" fill="#1E293B" stroke="#14B8A6" stroke-width="1"/>
+    <text x="-125" y="2" text-anchor="middle" font-family="sans-serif" font-size="10" font-weight="700" fill="#E2E8F0">DRAKES LABS</text>
+    
+    <rect x="-55" y="-12" width="110" height="20" rx="4" fill="#1E293B" stroke="#5EEAD4" stroke-width="1"/>
+    <text x="0" y="2" text-anchor="middle" font-family="sans-serif" font-size="10" font-weight="700" fill="#E2E8F0">PAPER 1.21.11</text>
+    
+    <rect x="70" y="-12" width="110" height="20" rx="4" fill="#1E293B" stroke="#14B8A6" stroke-width="1"/>
+    <text x="125" y="2" text-anchor="middle" font-family="sans-serif" font-size="10" font-weight="700" fill="#E2E8F0">JAVA 21</text>
+  </g>
 </svg>
