@@ -9,7 +9,7 @@
 // del token si solo tiene una. El token llega por variable de entorno desde el secreto de la
 // organizacion de GitHub: nunca se imprime ni se escribe en disco.
 
-import { appendFileSync, existsSync, readFileSync, mkdirSync } from 'fs';
+import { appendFileSync, existsSync, readFileSync } from 'fs';
 
 const V2 = 'https://api.modrinth.com/v2';
 const V3 = 'https://api.modrinth.com/v3';
@@ -129,52 +129,24 @@ console.log(`Proyecto en uso: ${proyecto.slug} (${proyecto.id})`);
 
 // --- Icono del proyecto -----------------------------------------------------------------
 // mc-publish sube el jar pero no toca el icono, y Modrinth muestra un cubo gris por defecto en
-// el buscador. Modrinth solo admite imagenes rasterizadas (PNG, WebP, JPG) en su endpoint de iconos,
-// rechazando SVG con HTTP 400. Si solo existe icon.svg, se rasteriza a 512x512 PNG con puppeteer.
+// el buscador. El icono se genera una sola vez y vive en el repo (docs/icon.svg); aqui solo se
+// sube si el proyecto aun no tiene ninguno, para no pisar uno cambiado a mano desde la web.
 try {
-  let rutaIconoPng = existsSync('.modrinth/icon.png')
-    ? '.modrinth/icon.png'
-    : (existsSync('docs/icon.png') ? 'docs/icon.png' : null);
-
-  if (!rutaIconoPng && existsSync('docs/icon.svg')) {
-    console.log('Convirtiendo docs/icon.svg a PNG 512x512 para Modrinth...');
-    try {
-      const puppeteer = (await import('puppeteer')).default;
-      const svg = readFileSync('docs/icon.svg', 'utf8');
-      const browser = await puppeteer.launch({ args: ['--no-sandbox', '--disable-setuid-sandbox'] });
-      const page = await browser.newPage();
-      await page.setViewport({ width: 512, height: 512, deviceScaleFactor: 1 });
-      await page.setContent(
-        `<!doctype html><html><head><style>html,body{margin:0;padding:0;overflow:hidden;background:transparent;}</style></head><body>${svg}</body></html>`,
-        { waitUntil: 'networkidle0' }
-      );
-      const dir = '.modrinth';
-      if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
-      rutaIconoPng = `${dir}/icon.png`;
-      await page.screenshot({ path: rutaIconoPng, omitBackground: true });
-      await browser.close();
-      console.log('Icono PNG generado con exito.');
-    } catch (err) {
-      console.error('No se pudo convertir SVG a PNG con puppeteer:', err.message);
-    }
-  }
-
-  if (rutaIconoPng && existsSync(rutaIconoPng)) {
-    console.log(`icono actual en Modrinth: ${proyecto.icon_url || 'ninguno'}`);
-    console.log(`Subiendo icono PNG (${rutaIconoPng})...`);
-    const png = readFileSync(rutaIconoPng);
-    const r = await fetch(`${V2}/project/${proyecto.id}/icon?ext=png`, {
+  const rutaIcono = 'docs/icon.svg';
+  if (existsSync(rutaIcono) && !proyecto.icon_url) {
+    const svg = readFileSync(rutaIcono);
+    const r = await fetch(`${V2}/project/${proyecto.id}/icon?ext=svg`, {
       method: 'PATCH',
-      headers: { ...cabeceras, 'Content-Type': 'image/png' },
-      body: png,
+      headers: { ...cabeceras, 'Content-Type': 'image/svg+xml' },
+      body: svg,
     });
     if (r.ok) {
-      console.log('Icono PNG subido correctamente a Modrinth.');
+      console.log('Icono subido.');
     } else {
+      // Modrinth rechaza algunos SVG en el icono. Se deja constancia del motivo en vez de un
+      // codigo suelto, para saber si hay que pasar a PNG.
       console.error(`No se pudo subir el icono (HTTP ${r.status}): ${(await r.text()).slice(0, 200)}`);
     }
-  } else {
-    console.log('Sin icon.png para subir.');
   }
 } catch (e) {
   console.error('Fallo al subir el icono:', e.message);
