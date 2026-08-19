@@ -1,3 +1,10 @@
+<<<<<<< HEAD
+=======
+// Se asegura de que el proyecto exista en Modrinth, DENTRO DE LA ORGANIZACION, y devuelve su id.
+// Cumple con las normativas 2.1 (galeria e imagenes destacadas con titulo), 5.9 y 4 (declaracion de fuentes y licencias)
+// y 6.2a (recursos vectoriales limpios sin IA generativa).
+
+>>>>>>> 1314b2f (ci: actualizar modrinth-publish y declaraciones de contenido (Modrinth 2.1, 5.9, 4, 6.2a))
 import { appendFileSync, existsSync, readFileSync } from 'fs';
 
 const V2 = 'https://api.modrinth.com/v2';
@@ -68,6 +75,12 @@ if (!proyecto) {
     project_type: 'mod',
     is_draft: true,
     license_id: process.env.PROJECT_LICENSE || 'GPL-3.0-only',
+<<<<<<< HEAD
+=======
+    source_url: `https://github.com/DrakesCraft-Labs/${SLUG}`,
+    issues_url: `https://github.com/DrakesCraft-Labs/${SLUG}/issues`,
+    discord_url: 'https://discord.gg/rR7FbfCt9Y',
+>>>>>>> 1314b2f (ci: actualizar modrinth-publish y declaraciones de contenido (Modrinth 2.1, 5.9, 4, 6.2a))
     initial_versions: [],
   };
 
@@ -101,6 +114,7 @@ if (process.env.GITHUB_OUTPUT) {
 }
 console.log(`Proyecto en uso: ${proyecto.slug} (${proyecto.id})`);
 
+<<<<<<< HEAD
 // --- Icono del proyecto (PNG obligatorio para Modrinth) -------------------------------
 try {
   let rutaIcono = null;
@@ -118,12 +132,58 @@ try {
       console.log(`Icono PNG subido con exito (${rutaIcono}).`);
     } else {
       console.error(`No se pudo subir el icono (HTTP ${r.status}): ${(await r.text()).slice(0, 200)}`);
+=======
+// --- Declaraciones de Contenido & Metadatos (Sección 5.9 y 4) -----------------------------
+try {
+  const patchData = {
+    source_url: `https://github.com/DrakesCraft-Labs/${SLUG}`,
+    issues_url: `https://github.com/DrakesCraft-Labs/${SLUG}/issues`,
+    discord_url: 'https://discord.gg/rR7FbfCt9Y'
+  };
+  await fetch(`${V2}/project/${proyecto.id}`, {
+    method: 'PATCH',
+    headers: { ...cabeceras, 'Content-Type': 'application/json' },
+    body: JSON.stringify(patchData),
+  });
+} catch (e) {
+  console.error('Error al actualizar metadatos de origen:', e.message);
+}
+
+// --- Icono del proyecto (docs/icon.png o docs/icon.svg) -----------------------------------
+try {
+  if (!proyecto.icon_url) {
+    let buffer = null;
+    let mime = '';
+    let ext = '';
+    if (existsSync('docs/icon.png')) {
+      buffer = readFileSync('docs/icon.png');
+      mime = 'image/png';
+      ext = 'png';
+    } else if (existsSync('docs/icon.svg')) {
+      buffer = readFileSync('docs/icon.svg');
+      mime = 'image/svg+xml';
+      ext = 'svg';
+    }
+
+    if (buffer) {
+      const r = await fetch(`${V2}/project/${proyecto.id}/icon?ext=${ext}`, {
+        method: 'PATCH',
+        headers: { ...cabeceras, 'Content-Type': mime },
+        body: buffer,
+      });
+      if (r.ok) {
+        console.log(`Icono ${ext} subido.`);
+      } else {
+        console.error(`No se pudo subir el icono (HTTP ${r.status}): ${(await r.text()).slice(0, 200)}`);
+      }
+>>>>>>> 1314b2f (ci: actualizar modrinth-publish y declaraciones de contenido (Modrinth 2.1, 5.9, 4, 6.2a))
     }
   }
 } catch (e) {
   console.error('Fallo al subir el icono:', e.message);
 }
 
+<<<<<<< HEAD
 // --- Galeria / Banner (GIF o PNG) ------------------------------------------------------
 try {
   let rutaBanner = null;
@@ -152,6 +212,37 @@ try {
 }
 
 // --- Descripcion larga (README saneado) -------------------------------------------------
+=======
+// --- Galeria de Imagenes & Imagen Destacada (Sección 2.1) ---------------------------------
+try {
+  const galeriaActual = Array.isArray(proyecto.gallery) ? proyecto.gallery : [];
+  const tieneDestacada = galeriaActual.some((item) => item.featured);
+
+  let bannerFile = null;
+  if (existsSync('docs/banner.png')) bannerFile = 'docs/banner.png';
+  else if (existsSync('banner.png')) bannerFile = 'banner.png';
+
+  if (bannerFile && !tieneDestacada) {
+    const bannerBytes = readFileSync(bannerFile);
+    const titulo = encodeURIComponent(`${NOMBRE} - Overview & Features`);
+    const desc = encodeURIComponent(`Official gameplay and feature banner for ${NOMBRE} on Paper 1.21.11.`);
+    const r = await fetch(`${V2}/project/${proyecto.id}/gallery?ext=png&featured=true&title=${titulo}&description=${desc}`, {
+      method: 'POST',
+      headers: { ...cabeceras, 'Content-Type': 'image/png' },
+      body: bannerBytes,
+    });
+    if (r.ok) {
+      console.log('Imagen destacada de galeria subida exitosamente (Seccion 2.1).');
+    } else {
+      console.error(`No se pudo subir la imagen de galeria (HTTP ${r.status}): ${(await r.text()).slice(0, 200)}`);
+    }
+  }
+} catch (e) {
+  console.error('Fallo al actualizar la galeria:', e.message);
+}
+
+// --- Descripcion larga sincronizada con README -------------------------------------------
+>>>>>>> 1314b2f (ci: actualizar modrinth-publish y declaraciones de contenido (Modrinth 2.1, 5.9, 4, 6.2a))
 try {
   if (existsSync('README.md')) {
     let cuerpo = readFileSync('README.md', 'utf8');

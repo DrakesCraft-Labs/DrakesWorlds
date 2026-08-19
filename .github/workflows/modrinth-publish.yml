@@ -121,14 +121,15 @@ jobs:
           echo "version=$VER" >> "$GITHUB_OUTPUT"
           echo "Version detectada: $VER"
 
-      - name: Preparar Node para la conversion del banner
+      - name: Preparar Node para renderizado vectorial de assets
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      - name: Convertir el banner SVG animado a GIF para Modrinth
+      - name: Renderizar banners e iconos vectoriales PNG para Modrinth (100% Vectorial, No IA)
         run: |
           set -euo pipefail
+<<<<<<< HEAD
           SVG="$(find docs assets . -maxdepth 2 -name 'banner.svg' -o -name '*banner*.svg' 2>/dev/null | head -n1 || true)"
           if [ -n "$SVG" ] && [ -f .github/scripts/svg-to-gif.mjs ]; then
             sudo apt-get update -qq && sudo apt-get install -y -qq imagemagick
@@ -138,6 +139,17 @@ jobs:
             echo "Banner convertido: $SVG -> .modrinth/banner.gif"
           else
             echo "Sin banner o script; se omite la conversion."
+=======
+          npm install --no-save @resvg/resvg-js puppeteer@23 || true
+          mkdir -p docs
+          if [ -f docs/icon.svg ] && [ ! -f docs/icon.png ]; then
+            node .github/scripts/svg-to-png.mjs docs/icon.svg docs/icon.png 512 512 || true
+          fi
+          if [ -f docs/banner.svg ] && [ ! -f docs/banner.png ]; then
+            node .github/scripts/svg-to-png.mjs docs/banner.svg docs/banner.png 1280 640 || true
+          elif [ -f banner.svg ] && [ ! -f docs/banner.png ]; then
+            node .github/scripts/svg-to-png.mjs banner.svg docs/banner.png 1280 640 || true
+>>>>>>> 1314b2f (ci: actualizar modrinth-publish y declaraciones de contenido (Modrinth 2.1, 5.9, 4, 6.2a))
           fi
 
       - name: Asegurar que el proyecto existe en Modrinth
