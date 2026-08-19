@@ -1,35 +1,14 @@
-# Publicacion a Modrinth para un addon de DrakesCraft.
-#
-# QUE HACE
-#   - Compila el addon y publica el jar en Modrinth.
-#   - Solo publica cambios que valen la pena: se salta versiones por cambios menores (< umbral de
-#     lineas en src/) salvo que sean urgentes.
-#   - Un hotfix se publica siempre: se detecta por palabra clave en el commit ([URGENT], [HOTFIX],
-#     "fix: dupe", "fix: crash").
-#   - Convierte el banner .svg ANIMADO a .gif para la galeria (Modrinth no renderiza SVG).
-#   - Usa el README.md del repo como descripcion del proyecto en Modrinth.
-#
-# SEGURIDAD -- POR QUE NO SE DISPARA EN PULL REQUESTS
-#   El MODRINTH_TOKEN es un secreto. Un workflow que corre en `pull_request` desde un fork puede
-#   ser modificado por quien abre el PR y filtrar el token. Por eso la publicacion solo corre en
-#   `push` a main y en disparo manual (`workflow_dispatch`), nunca en PRs. Los PRs solo compilan,
-#   sin acceso al secreto.
-#
-# COMO SE CONFIGURA UN REPO PARA USAR ESTO
-#   1. Secreto de organizacion MODRINTH_TOKEN (ya creado).
-#   2. Nada mas. Si el proyecto no existe en Modrinth, el workflow lo CREA como borrador
-#      usando el nombre del repo y su README, y publica en el. Se revisa y se hace publico a mano.
-#   3. Para probar sin publicar de verdad: Actions -> este workflow -> Run workflow -> dry_run = true.
-
+# Publicacion a Modrinth para un plugin/addon de DrakesCraft.
 name: Publicar en Modrinth
 
 on:
   push:
-    branches: [main]
+    branches: [main, master, 1.21-latin, fix/drakes-loans]
     paths:
       - 'src/**'
       - 'pom.xml'
       - 'build.gradle'
+      - 'build.gradle.kts'
       - 'README.md'
       - 'docs/**'
   workflow_dispatch:
@@ -51,9 +30,6 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # ---------------------------------------------------------------------------
-  # Decide si este cambio merece una version nueva en Modrinth.
-  # ---------------------------------------------------------------------------
   decidir:
     runs-on: ubuntu-latest
     outputs:
@@ -62,15 +38,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 2  # necesitamos el commit anterior para medir el diff
+          fetch-depth: 2
 
       - id: evaluar
         env:
           UMBRAL_LINEAS: '5'
         run: |
           set -euo pipefail
-
-          # El disparo manual manda: si se pidio force, se publica.
           if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.force }}" = "true" ]; then
             echo "publicar=true"  >> "$GITHUB_OUTPUT"
             echo "motivo=disparo manual con force"  >> "$GITHUB_OUTPUT"
@@ -78,20 +52,16 @@ jobs:
           fi
 
           MENSAJE="$(git log -1 --pretty=%B || true)"
-
-          # Un hotfix se publica siempre, sin importar el tamano del cambio.
           if echo "$MENSAJE" | grep -qiE '\[URGENT\]|\[HOTFIX\]|fix: *dupe|fix: *crash|dupe|exploit'; then
             echo "publicar=true"  >> "$GITHUB_OUTPUT"
             echo "motivo=hotfix detectado en el mensaje del commit"  >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
-          # Cambio normal: se mide cuantas lineas de codigo cambiaron (src/ y build).
           if git rev-parse HEAD~1 >/dev/null 2>&1; then
-            LINEAS="$(git diff --numstat HEAD~1 HEAD -- 'src/**' pom.xml build.gradle \
-                      | awk '{ s += $1 + $2 } END { print s + 0 }')"
+            LINEAS="$(git diff --numstat HEAD~1 HEAD -- 'src/**' pom.xml build.gradle build.gradle.kts 2>/dev/null                       | awk '{ s += $1 + $2 } END { print s + 0 }')"
           else
-            LINEAS=9999  # primer commit: publicar
+            LINEAS=9999
           fi
 
           echo "Lineas de codigo cambiadas: $LINEAS (umbral $UMBRAL_LINEAS)"
@@ -103,9 +73,6 @@ jobs:
             echo "motivo=cambio menor de $LINEAS lineas; no se satura Modrinth"  >> "$GITHUB_OUTPUT"
           fi
 
-  # ---------------------------------------------------------------------------
-  # Compila y, si procede, publica.
-  # ---------------------------------------------------------------------------
   publicar:
     needs: decidir
     if: needs.decidir.outputs.publicar == 'true'
@@ -118,24 +85,39 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
-          cache: maven
 
       - name: Compilar
-        run: mvn -B -ntp package -DskipTests
+        run: |
+          set -euo pipefail
+          if [ -f pom.xml ]; then
+            mvn -B -ntp package -DskipTests
+          elif [ -f gradlew ]; then
+            chmod +x gradlew
+            ./gradlew build -x test --no-daemon
+          elif [ -f build.gradle ] || [ -f build.gradle.kts ]; then
+            gradle build -x test --no-daemon
+          else
+            echo "No se encontro build descriptor (pom.xml ni build.gradle)"
+            exit 1
+          fi
 
       - name: Localizar el jar
         id: jar
         run: |
           set -euo pipefail
-          RUTA="$(find target -maxdepth 1 -name '*.jar' \
-                  ! -name 'original-*' ! -name '*-sources.jar' ! -name '*-javadoc.jar' \
-                  | head -n1)"
+          RUTA=""
+          if [ -d target ]; then
+            RUTA="$(find target -maxdepth 2 -name '*.jar' ! -name 'original-*' ! -name '*-sources.jar' ! -name '*-javadoc.jar' | head -n1 || true)"
+          elif [ -d build/libs ]; then
+            RUTA="$(find build/libs -maxdepth 2 -name '*.jar' ! -name 'original-*' ! -name '*-sources.jar' ! -name '*-javadoc.jar' | head -n1 || true)"
+          fi
           if [ -z "$RUTA" ]; then echo "No se encontro el jar compilado"; exit 1; fi
           echo "ruta=$RUTA" >> "$GITHUB_OUTPUT"
-          # Modrinth exige un numero de version para cada fichero que se sube. Se toma la del
-          # pom y, si no se puede leer, se cae al sha corto del commit para no bloquear la subida.
-          VER="$(mvn -q -ntp help:evaluate -Dexpression=project.version -DforceStdout 2>/dev/null | tail -n1 | tr -d '[:space:]')"
-          case "$VER" in ''|*ERROR*|*'$'*) VER="0.0.0-${GITHUB_SHA::7}";; esac
+          VER="0.0.0-${GITHUB_SHA:0:7}"
+          if [ -f pom.xml ]; then
+            POM_VER="$(mvn -q -ntp help:evaluate -Dexpression=project.version -DforceStdout 2>/dev/null | tail -n1 | tr -d '[:space:]' || true)"
+            case "$POM_VER" in ''|*ERROR*|*'$'*) ;; *) VER="$POM_VER";; esac
+          fi
           echo "version=$VER" >> "$GITHUB_OUTPUT"
           echo "Version detectada: $VER"
 
@@ -147,20 +129,18 @@ jobs:
       - name: Convertir el banner SVG animado a GIF para Modrinth
         run: |
           set -euo pipefail
-          # Los banners son SVG ANIMADOS y Modrinth no renderiza SVG en su galeria. Un PNG perderia
-          # la animacion, asi que se rasteriza a GIF capturando fotogramas de un ciclo con Chromium.
-          SVG="$(find docs assets . -maxdepth 2 -name 'banner.svg' 2>/dev/null | head -n1 || true)"
-          if [ -n "$SVG" ]; then
+          SVG="$(find docs assets . -maxdepth 2 -name 'banner.svg' -o -name '*banner*.svg' 2>/dev/null | head -n1 || true)"
+          if [ -n "$SVG" ] && [ -f .github/scripts/svg-to-gif.mjs ]; then
             sudo apt-get update -qq && sudo apt-get install -y -qq imagemagick
             npm install --no-save puppeteer@23
             mkdir -p .modrinth
-            node .github/scripts/svg-to-gif.mjs "$SVG" .modrinth/banner.gif
+            node .github/scripts/svg-to-gif.mjs "$SVG" .modrinth/banner.gif || true
             echo "Banner convertido: $SVG -> .modrinth/banner.gif"
           else
-            echo "Sin banner.svg; se omite la conversion."
+            echo "Sin banner o script; se omite la conversion."
           fi
 
-      - name: Asegurar que el proyecto existe en Modrinth (lo crea si falta)
+      - name: Asegurar que el proyecto existe en Modrinth
         id: cfg
         if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.dry_run) }}
         env:
@@ -169,13 +149,17 @@ jobs:
           PROJECT_SLUG: ${{ github.event.repository.name }}
           PROJECT_NAME: ${{ github.event.repository.name }}
           PROJECT_SUMMARY: ${{ github.event.repository.description }}
-          # Vacio = se envia a la cola de revision de Modrinth. Poner "true" lo deja en borrador.
           MODRINTH_DRAFT: ${{ vars.MODRINTH_DRAFT }}
           PROJECT_LICENSE: ${{ vars.MODRINTH_LICENSE }}
-        run: node .github/scripts/modrinth-ensure-project.mjs
+        run: |
+          if [ -f .github/scripts/modrinth-ensure-project.mjs ]; then
+            node .github/scripts/modrinth-ensure-project.mjs
+          else
+            echo "No existe modrinth-ensure-project.mjs"
+            exit 1
+          fi
 
       - name: Publicar en Modrinth
-        # Se salta solo en dry_run: si el proyecto no existia, el paso anterior ya lo creo.
         if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.dry_run) }}
         uses: Kir-Antipov/mc-publish@v3.3
         with:
@@ -192,18 +176,18 @@ jobs:
           game-versions: |
             1.21.x
           changelog: ${{ needs.decidir.outputs.motivo }}
-          # No fallar si algun campo opcional falta.
           modrinth-featured: false
 
       - name: Enviar el proyecto a revision de Modrinth
-        # Solo tiene sentido tras subir la version: Modrinth rechaza un proyecto en revision
-        # que no tenga ninguna. Por eso va despues de publicar y no en la creacion.
         if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.dry_run) }}
         env:
           MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
           MODRINTH_PROJECT_ID: ${{ steps.cfg.outputs.project_id }}
           MODRINTH_DRAFT: ${{ vars.MODRINTH_DRAFT }}
-        run: node .github/scripts/modrinth-submit-review.mjs || true
+        run: |
+          if [ -f .github/scripts/modrinth-submit-review.mjs ]; then
+            node .github/scripts/modrinth-submit-review.mjs || true
+          fi
 
       - name: Resumen
         if: always()
