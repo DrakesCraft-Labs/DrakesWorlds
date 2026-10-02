@@ -3,7 +3,7 @@ package me.jackstar.drakesworlds.domain;
 import org.bukkit.block.Biome;
 
 import java.util.Collections;
-import java.util.EnumMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 public final class WorldProfile {
@@ -45,7 +45,7 @@ public final class WorldProfile {
         this.clearingScale = clearingScale;
         this.clearingThreshold = clearingThreshold;
         this.clearingFlattening = clearingFlattening;
-        this.biomeWeights = Collections.unmodifiableMap(new EnumMap<>(biomeWeights));
+        this.biomeWeights = Collections.unmodifiableMap(new LinkedHashMap<>(biomeWeights));
         this.decorationSettings = decorationSettings;
     }
 

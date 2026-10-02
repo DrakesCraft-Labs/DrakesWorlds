@@ -259,27 +259,31 @@ public final class DrakesChunkGenerator extends ChunkGenerator {
     }
 
     private Material topBlockForBiome(Biome biome, int worldX, int worldZ) {
-        return switch (biome) {
-            case SWAMP -> Material.GRASS_BLOCK;
-            case MANGROVE_SWAMP -> Material.MUD;
-            case BADLANDS, WOODED_BADLANDS, ERODED_BADLANDS -> Material.RED_SAND;
-            case JAGGED_PEAKS, SNOWY_SLOPES, GROVE, SNOWY_TAIGA -> Material.SNOW_BLOCK;
-            case OLD_GROWTH_PINE_TAIGA, TAIGA -> {
-                if ((Math.abs(hash(worldX, worldZ)) & 1L) == 0L) {
-                    yield Material.PODZOL;
-                }
-                yield Material.GRASS_BLOCK;
-            }
-            default -> Material.GRASS_BLOCK;
-        };
+        // Biome dejo de ser enum en Paper 1.21.3+: no admite switch, se compara por identidad.
+        if (biome == Biome.MANGROVE_SWAMP) {
+            return Material.MUD;
+        }
+        if (biome == Biome.BADLANDS || biome == Biome.WOODED_BADLANDS || biome == Biome.ERODED_BADLANDS) {
+            return Material.RED_SAND;
+        }
+        if (biome == Biome.JAGGED_PEAKS || biome == Biome.SNOWY_SLOPES || biome == Biome.GROVE || biome == Biome.SNOWY_TAIGA) {
+            return Material.SNOW_BLOCK;
+        }
+        if ((biome == Biome.OLD_GROWTH_PINE_TAIGA || biome == Biome.TAIGA)
+                && (Math.abs(hash(worldX, worldZ)) & 1L) == 0L) {
+            return Material.PODZOL;
+        }
+        return Material.GRASS_BLOCK;
     }
 
     private Material fillerBlockForBiome(Biome biome) {
-        return switch (biome) {
-            case MANGROVE_SWAMP -> Material.MUD;
-            case BADLANDS, WOODED_BADLANDS, ERODED_BADLANDS -> Material.ORANGE_TERRACOTTA;
-            default -> Material.DIRT;
-        };
+        if (biome == Biome.MANGROVE_SWAMP) {
+            return Material.MUD;
+        }
+        if (biome == Biome.BADLANDS || biome == Biome.WOODED_BADLANDS || biome == Biome.ERODED_BADLANDS) {
+            return Material.ORANGE_TERRACOTTA;
+        }
+        return Material.DIRT;
     }
 
     private Material badlandsStrata(int y, int worldX, int worldZ) {

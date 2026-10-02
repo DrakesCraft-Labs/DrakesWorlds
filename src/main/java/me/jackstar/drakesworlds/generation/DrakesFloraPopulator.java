@@ -297,11 +297,13 @@ public final class DrakesFloraPopulator extends BlockPopulator {
     }
 
     private static Material selectLeavesMaterial(Biome biome) {
-        return switch (biome) {
-            case CHERRY_GROVE -> Material.CHERRY_LEAVES;
-            case MANGROVE_SWAMP -> Material.MANGROVE_LEAVES;
-            default -> isPineBiome(biome) ? Material.SPRUCE_LEAVES : Material.OAK_LEAVES;
-        };
+        if (biome == Biome.CHERRY_GROVE) {
+            return Material.CHERRY_LEAVES;
+        }
+        if (biome == Biome.MANGROVE_SWAMP) {
+            return Material.MANGROVE_LEAVES;
+        }
+        return isPineBiome(biome) ? Material.SPRUCE_LEAVES : Material.OAK_LEAVES;
     }
 
     private static boolean shouldSpawnDeadTree(Random random, Biome biome, DecorationSettings settings) {

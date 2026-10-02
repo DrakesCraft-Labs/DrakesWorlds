@@ -3,6 +3,8 @@ package me.jackstar.drakesworlds.config;
 import me.jackstar.drakesworlds.DrakesWorldsPlugin;
 import me.jackstar.drakesworlds.domain.DecorationSettings;
 import me.jackstar.drakesworlds.domain.WorldProfile;
+import org.bukkit.NamespacedKey;
+import org.bukkit.Registry;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
 import org.bukkit.configuration.ConfigurationSection;
@@ -11,8 +13,8 @@ import org.bukkit.configuration.file.YamlConfiguration;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.EnumMap;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -131,17 +133,16 @@ public final class WorldsConfig {
                 continue;
             }
 
-            Map<Biome, Double> weights = new EnumMap<>(Biome.class);
+            Map<Biome, Double> weights = new LinkedHashMap<>();
             for (String biomeName : biomeWeightsSection.getKeys(false)) {
-                String normalized = biomeName.trim().toUpperCase(Locale.ROOT);
-                try {
-                    Biome biome = Biome.valueOf(normalized);
-                    double value = biomeWeightsSection.getDouble(biomeName, 0.0d);
-                    if (value > 0.0d) {
-                        weights.put(biome, value);
-                    }
-                } catch (IllegalArgumentException ex) {
+                Biome biome = resolveBiome(biomeName);
+                if (biome == null) {
                     plugin.getLogger().warning("Unknown biome '" + biomeName + "' in profile '" + profileId + "'");
+                    continue;
+                }
+                double value = biomeWeightsSection.getDouble(biomeName, 0.0d);
+                if (value > 0.0d) {
+                    weights.put(biome, value);
                 }
             }
 
@@ -214,6 +215,13 @@ public final class WorldsConfig {
 
             startupWorlds.add(new StartupWorldSpec(name, profile.toLowerCase(Locale.ROOT), environment, seed, createIfMissing));
         }
+    }
+
+    // Biome es un registro desde Paper 1.21.3: se resuelve por clave ("CHERRY_GROVE" o "minecraft:cherry_grove").
+    private static Biome resolveBiome(String rawName) {
+        String normalized = rawName.trim().toLowerCase(Locale.ROOT);
+        NamespacedKey key = normalized.contains(":") ? NamespacedKey.fromString(normalized) : NamespacedKey.minecraft(normalized);
+        return key == null ? null : Registry.BIOME.get(key);
     }
 
     private static double clampZeroToOne(double value) {

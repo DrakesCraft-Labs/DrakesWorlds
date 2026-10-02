@@ -13,6 +13,7 @@
 
     <properties>
         <java.version>21</java.version>
+        <paper.version>1.21.11-R0.1-SNAPSHOT</paper.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
@@ -40,7 +41,14 @@
         <dependency>
             <groupId>io.papermc.paper</groupId>
             <artifactId>paper-api</artifactId>
-            <version>1.20.6-R0.1-SNAPSHOT</version>
+            <version>${paper.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <!-- paper-api 1.21+ ya no expone jsr305 de forma transitiva (javax.annotation.Nonnull/Nullable) -->
+        <dependency>
+            <groupId>com.google.code.findbugs</groupId>
+            <artifactId>jsr305</artifactId>
+            <version>3.0.2</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>
